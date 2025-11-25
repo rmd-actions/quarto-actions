@@ -11,6 +11,8 @@ website:
         href: render.qmd
       - text: "Publish"
         href: publish.qmd
+      - text: "Examples"
+        href: examples.qmd
     right:
       - icon: github
         href: https://github.com/quarto-dev/quarto-actions

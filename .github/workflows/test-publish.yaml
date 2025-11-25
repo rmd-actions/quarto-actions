@@ -18,13 +18,18 @@ jobs:
         with:
           version: release
 
+      - name: Install yq
+        run: |
+          wget https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -O /usr/local/bin/yq
+          chmod +x /usr/local/bin/yq
+
       # Generate website content from README files
       - name: Generate Quarto site
         run: |
           # Create working directory structure
-          mkdir -p _site_source
+          mkdir -p _site_source/examples
 
-          # Copy Quarto config
+          # Copy base Quarto config
           cp .github/docs/_quarto.yml _site_source/
 
           # Define repo URL for link fixing
@@ -38,6 +43,7 @@ jobs:
               -e 's|\](./setup)|\](setup.qmd)|g' \
               -e 's|\](./render)|\](render.qmd)|g' \
               -e 's|\](./publish)|\](publish.qmd)|g' \
+              -e 's|\](./examples)|\](examples.qmd)|g' \
               "$file"
             # Second: All remaining ./ links point to GitHub
             sed -i "s|\](./|\](${REPO_URL}/tree/main/|g" "$file"
@@ -56,6 +62,22 @@ jobs:
 
           cp publish/README.md _site_source/publish-readme.md
           fix_readme_links _site_source/publish-readme.md
+
+          cp examples/README.md _site_source/examples-readme.md
+          fix_readme_links _site_source/examples-readme.md
+
+          # Add sidebar navigation with yq
+          yq eval -i '.website.sidebar = [{"title": "Examples", "style": "floating", "contents": ["examples.qmd", {"section": "Workflow Examples", "contents": []}]}]' _site_source/_quarto.yml
+
+          # Copy example files and add to sidebar dynamically
+          for example in examples/example-*.md; do
+            filename=$(basename "$example" .md)
+            cp "$example" "_site_source/examples/${filename}.qmd"
+            fix_readme_links "_site_source/examples/${filename}.qmd"
+
+            # Add to sidebar contents
+            yq eval -i '.website.sidebar[0].contents[1].contents += ["examples/'${filename}'.qmd"]' _site_source/_quarto.yml
+          done
 
           # Generate index.qmd
           cat > _site_source/index.qmd <<'EOF'
@@ -91,6 +113,14 @@ jobs:
           ---
 
           {{< include publish-readme.md >}}
+          EOF
+
+          cat > _site_source/examples.qmd <<'EOF'
+          ---
+          title: "Examples"
+          ---
+
+          {{< include examples-readme.md >}}
           EOF
 
       # Test the publish action
