@@ -6,6 +6,8 @@ on:
   push:
     branches: [main, master]
   pull_request:
+  schedule:
+    - cron: '0 0 * * 0'  # Weekly on Sunday at midnight UTC
   workflow_dispatch:
     inputs:
       version:
