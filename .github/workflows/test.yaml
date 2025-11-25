@@ -31,7 +31,7 @@ jobs:
         config:
           # Default config for standard platforms
           - os: macos-latest
-          - os: macos-13
+          - os: macos-15-intel
           - os: windows-latest
             tinytex: 'false'
           - os: ubuntu-latest
