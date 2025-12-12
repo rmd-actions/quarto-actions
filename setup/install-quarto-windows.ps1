@@ -14,16 +14,30 @@
     ttps:/go.microsoft.com/fwlink/?LinkID=135170
 #>
 
-Invoke-WebRequest -useb get.scoop.sh -outfile 'install.ps1'
-.\install.ps1 -RunAsAdmin
-Join-Path (Resolve-Path ~).Path "scoop\shims" >> $Env:GITHUB_PATH
+# Exit immediately on errors
+$ErrorActionPreference = "Stop"
+
+try {
+    Invoke-WebRequest -useb get.scoop.sh -outfile 'install.ps1'
+    .\install.ps1 -RunAsAdmin
+    if ($LASTEXITCODE -ne 0) {
+        Write-Error "Scoop installation failed with exit code $LASTEXITCODE"
+        exit 1
+    }
+    $scoopShims = Join-Path (Resolve-Path ~).Path "scoop\shims"
+    Add-Content -Path $Env:GITHUB_PATH -Value $scoopShims
+} catch {
+    Write-Error "Failed to download or install Scoop: $_"
+    exit 1
+}
 
 $version=$args[0]
 scoop bucket add r-bucket https://github.com/cderv/r-bucket.git
+
 if ([string]::IsNullOrEmpty($version)) {
     scoop install quarto
 } elseif ($version -eq 'pre-release') {
-    Invoke-Expression -Command "scoop install quarto-prerelease"
+    scoop install quarto-prerelease
 } else {
-    Invoke-Expression -Command "scoop install quarto@$version"
+    scoop install quarto@$version
 }
