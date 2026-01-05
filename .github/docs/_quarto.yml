@@ -1,0 +1,18 @@
+project:
+  type: website
+
+website:
+  title: "Quarto Actions"
+  navbar:
+    left:
+      - text: "Setup"
+        href: setup.qmd
+      - text: "Render"
+        href: render.qmd
+      - text: "Publish"
+        href: publish.qmd
+      - text: "Examples"
+        href: examples.qmd
+    right:
+      - icon: github
+        href: https://github.com/quarto-dev/quarto-actions

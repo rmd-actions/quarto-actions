@@ -6,6 +6,8 @@ on:
   push:
     branches: [main, master]
   pull_request:
+  schedule:
+    - cron: '0 0 * * 0'  # Weekly on Sunday at midnight UTC
   workflow_dispatch:
     inputs:
       version:
@@ -31,7 +33,7 @@ jobs:
         config:
           # Default config for standard platforms
           - os: macos-latest
-          - os: macos-13
+          - os: macos-15-intel
           - os: windows-latest
             tinytex: 'false'
           - os: ubuntu-latest
@@ -40,7 +42,7 @@ jobs:
             tinytex: 'false'
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - uses: ./setup
         env:

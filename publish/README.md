@@ -28,8 +28,10 @@ Give this token a memorable name, and note the resulting string (or keep this wi
 
 ## GitHub Pages
 
-> See also <https://quarto.org/docs/publishing/github-pages.html> about Github Pages publishing support in Quarto.  
+> See also <https://quarto.org/docs/publishing/github-pages.html> about Github Pages publishing support in Quarto.
 > And <https://quarto.org/docs/publishing/github-pages.html#github-action> about using Github Actions to publish to Github Pages with Quarto.
+
+**Note**: This action is compatible with `actions/checkout@v6` and later. If you experience credential errors when publishing to gh-pages (e.g., "fatal: could not read Username"), ensure you're using `actions/checkout@v6` or later, or pin to `actions/checkout@v5` until you can upgrade. See [#133](https://github.com/quarto-dev/quarto-actions/issues/133) for details.
 
 1. Quarto needs to configure the repository for publishing through GitHub Actions. To do this, run `quarto publish gh-pages` locally, once. This will create a new branch called `gh-pages` and push it to the remote repository, and configure the gh-pages branch to be the [publishing source for GitHub Pages](https://quarto.org/docs/publishing/github-pages.html#source-branch).
 

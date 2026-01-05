@@ -1,0 +1,134 @@
+name: Test Publish Action
+
+on:
+  push:
+    branches: [main]
+  schedule:
+    - cron: '0 0 * * 1'  # Weekly on Monday at midnight UTC
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  test-publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: ./setup
+        with:
+          version: release
+
+      - name: Install yq
+        run: |
+          wget https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -O /usr/local/bin/yq
+          chmod +x /usr/local/bin/yq
+
+      # Generate website content from README files
+      - name: Generate Quarto site
+        run: |
+          # Create working directory structure
+          mkdir -p _site_source/examples
+
+          # Copy base Quarto config
+          cp .github/docs/_quarto.yml _site_source/
+
+          # Define repo URL for link fixing
+          REPO_URL="https://github.com/quarto-dev/quarto-actions"
+
+          # Function to fix links in a README
+          fix_readme_links() {
+            local file=$1
+            # First: Fix known action page links to point to site pages
+            sed -i \
+              -e 's|\](./setup)|\](setup.qmd)|g' \
+              -e 's|\](./render)|\](render.qmd)|g' \
+              -e 's|\](./publish)|\](publish.qmd)|g' \
+              -e 's|\](./examples)|\](examples.qmd)|g' \
+              "$file"
+            # Second: All remaining ./ links point to GitHub
+            sed -i "s|\](./|\](${REPO_URL}/tree/main/|g" "$file"
+          }
+
+          # Copy and fix main README
+          cp README.md _site_source/
+          fix_readme_links _site_source/README.md
+
+          # Copy and fix action READMEs
+          cp setup/README.md _site_source/setup-readme.md
+          fix_readme_links _site_source/setup-readme.md
+
+          cp render/README.md _site_source/render-readme.md
+          fix_readme_links _site_source/render-readme.md
+
+          cp publish/README.md _site_source/publish-readme.md
+          fix_readme_links _site_source/publish-readme.md
+
+          cp examples/README.md _site_source/examples-readme.md
+          fix_readme_links _site_source/examples-readme.md
+
+          # Add sidebar navigation with yq
+          yq eval -i '.website.sidebar = [{"title": "Examples", "style": "floating", "contents": ["examples.qmd", {"section": "Workflow Examples", "contents": []}]}]' _site_source/_quarto.yml
+
+          # Copy example files and add to sidebar dynamically
+          for example in examples/example-*.md; do
+            filename=$(basename "$example" .md)
+            cp "$example" "_site_source/examples/${filename}.qmd"
+            fix_readme_links "_site_source/examples/${filename}.qmd"
+
+            # Add to sidebar contents
+            yq eval -i '.website.sidebar[0].contents[1].contents += ["examples/'${filename}'.qmd"]' _site_source/_quarto.yml
+          done
+
+          # Generate index.qmd
+          cat > _site_source/index.qmd <<'EOF'
+          ---
+          title: "Quarto Actions"
+          ---
+
+          This site demonstrates the quarto-actions and tests the publish action.
+
+          {{< include README.md >}}
+          EOF
+
+          # Generate action pages
+          cat > _site_source/setup.qmd <<'EOF'
+          ---
+          title: "Setup Action"
+          ---
+
+          {{< include setup-readme.md >}}
+          EOF
+
+          cat > _site_source/render.qmd <<'EOF'
+          ---
+          title: "Render Action"
+          ---
+
+          {{< include render-readme.md >}}
+          EOF
+
+          cat > _site_source/publish.qmd <<'EOF'
+          ---
+          title: "Publish Action"
+          ---
+
+          {{< include publish-readme.md >}}
+          EOF
+
+          cat > _site_source/examples.qmd <<'EOF'
+          ---
+          title: "Examples"
+          ---
+
+          {{< include examples-readme.md >}}
+          EOF
+
+      # Test the publish action
+      - uses: ./publish
+        with:
+          target: gh-pages
+          path: _site_source
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
